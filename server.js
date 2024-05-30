@@ -543,7 +543,7 @@ app.put('/users/:userId/progress/:courseId/questions/:questionId', async (req, r
 // Define a new endpoint for updating progress
 app.put('/users/:userId/progress/:courseId/questions/:questionId/update', async (req, res) => {
   const { userId, courseId, questionId } = req.params;
-  const { answered, correct, triesLeft } = req.body;
+  const { answered, correct } = req.body;
 
   if (!userId || !courseId || !questionId) {
     return res.status(400).send({ message: 'Missing userId, courseId, or questionId' });
@@ -553,52 +553,38 @@ app.put('/users/:userId/progress/:courseId/questions/:questionId/update', async 
     const user = await User.findById(userId);
     if (!user) return res.status(404).send('User not found');
 
-    // Find and update the question progress
     const courseProgress = user.progress.find(p => p.courseId.toString() === courseId);
     if (!courseProgress) return res.status(404).send('Course progress not found');
 
     const questionProgress = courseProgress.questionProgress.find(qp => qp.questionId.toString() === questionId);
     if (questionProgress) {
-      questionProgress.answered = answered;
-      questionProgress.correct = correct;
-
-      // Decrease triesLeft if answered and triesLeft > 0
-      if (triesLeft > 0) {
+      if (questionProgress.triesLeft > 0) {
         questionProgress.triesLeft--;
-      }
 
-      // Update points based on correctness and tries left
-      if (answered && correct) {
-        courseProgress.points += 10;
-      } else if (answered && !correct && triesLeft === 0) {
-        courseProgress.points -= 5;
+        if (answered) {
+          questionProgress.answered = true;
+          questionProgress.correct = correct;
+
+          // Update points based on correctness and tries left
+          if (correct) {
+            courseProgress.points += 10;
+          } else if (!correct && questionProgress.triesLeft === 0) {
+            courseProgress.points -= 5;
+          }
+        }
       }
     } else {
-      // Initialize questionProgress if it does not exist
-      const newQuestionProgress = {
-        questionId: questionId,
-        answered: answered,
-        correct: correct,
-        triesLeft: triesLeft > 0 ? triesLeft - 1 : 0
-      };
-      courseProgress.questionProgress.push(newQuestionProgress);
-
-      // Update points based on correctness and tries left
-      if (answered && correct) {
-        courseProgress.points += 10;
-      } else if (answered && !correct && triesLeft === 0) {
-        courseProgress.points -= 5;
-      }
+      return res.status(404).send('Question progress not found');
     }
 
-    // Save the updated user document
     await user.save();
-    res.status(200).send({ questionProgress, points: courseProgress.points }); // Return the updated question progress and points
+    res.status(200).send({ questionProgress, points: courseProgress.points });
   } catch (error) {
     console.error('Error updating question progress:', error);
     res.status(500).send({ message: 'Error updating question progress', error: error.message });
   }
 });
+
 
 
 
