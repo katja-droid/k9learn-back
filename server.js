@@ -557,24 +557,22 @@ app.put('/users/:userId/progress/:courseId/questions/:questionId/update', async 
     if (!courseProgress) return res.status(404).send('Course progress not found');
 
     const questionProgress = courseProgress.questionProgress.find(qp => qp.questionId.toString() === questionId);
-    if (questionProgress) {
-      if (questionProgress.triesLeft > 0) {
-        questionProgress.triesLeft--;
+    if (!questionProgress) return res.status(404).send('Question progress not found');
 
-        if (answered) {
-          questionProgress.answered = true;
-          questionProgress.correct = correct;
+    if (questionProgress.triesLeft > 0) {
+      questionProgress.triesLeft--;
 
-          // Update points based on correctness and tries left
-          if (correct) {
-            courseProgress.points += 10;
-          } else if (!correct && questionProgress.triesLeft === 0) {
-            courseProgress.points -= 5;
-          }
+      if (answered) {
+        questionProgress.answered = true;
+        questionProgress.correct = correct;
+
+        // Update points based on correctness
+        if (correct) {
+          courseProgress.points += 10;
+        } else if (!correct && questionProgress.triesLeft === 0) {
+          courseProgress.points -= 5;
         }
       }
-    } else {
-      return res.status(404).send('Question progress not found');
     }
 
     await user.save();
@@ -584,6 +582,7 @@ app.put('/users/:userId/progress/:courseId/questions/:questionId/update', async 
     res.status(500).send({ message: 'Error updating question progress', error: error.message });
   }
 });
+
 
 
 
