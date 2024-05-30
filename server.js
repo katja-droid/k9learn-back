@@ -573,6 +573,22 @@ app.put('/users/:userId/progress/:courseId/questions/:questionId/update', async 
       } else if (answered && !correct && triesLeft === 0) {
         courseProgress.points -= 5;
       }
+    } else {
+      // Initialize questionProgress if it does not exist
+      const newQuestionProgress = {
+        questionId: questionId,
+        answered: answered,
+        correct: correct,
+        triesLeft: triesLeft > 0 ? triesLeft - 1 : 0
+      };
+      courseProgress.questionProgress.push(newQuestionProgress);
+
+      // Update points based on correctness and tries left
+      if (answered && correct) {
+        courseProgress.points += 10;
+      } else if (answered && !correct && triesLeft === 0) {
+        courseProgress.points -= 5;
+      }
     }
 
     // Save the updated user document
