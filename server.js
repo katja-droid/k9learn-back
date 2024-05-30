@@ -5,6 +5,7 @@ const User = require('./models/User');  // Assuming your User model is in models
 const Course = require('./models/Course');  // Assuming your Course model is in models/Course.js
 const New = require('./models/New'); 
 const Article = require('./models/Article'); 
+const Test = require('./models/Test'); 
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const app = express();
@@ -17,9 +18,9 @@ mongoose.connect('mongodb+srv://daria:1234@cluster0.btuhiak.mongodb.net/?retryWr
   .catch(err => console.log(err));
 // Setup CORS middleware
 const corsOptions = {
-  origin: ['http://localhost:3000'], // Allow requests from these origins
-  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
-  credentials: true 
+  origin: ['http://localhost:3000', 'http://k9learn.netlify.app', 'https://k9learn.netlify.app'],
+  optionsSuccessStatus: 200,
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -368,6 +369,7 @@ app.post('/courses/by-ids', async (req, res) => {
     res.status(500).send({ message: 'Error fetching courses', error: error.message });
   }
 });
+
 app.get('/users/:userId/friends', async (req, res) => {
   const { userId } = req.params;
 
@@ -418,6 +420,22 @@ app.delete('/users/:userId/friends/:friendId', async (req, res) => {
   } catch (error) {
     // If an error occurs, send a 500 response with the error message
     res.status(500).json({ message: 'Error removing friend', error: error.message });
+  }
+});
+app.get('/users/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Error fetching user', error: error.message });
   }
 });
 app.get('/friend-courses/:userId/:friendId', async (req, res) => {
@@ -719,5 +737,42 @@ app.get('/articles/:id', async (req, res) => {
     res.json(article);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+app.get('/tests', async (req, res) => {
+  try {
+    const tests = await Test.find();
+    res.json(tests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET route for fetching a test by ID
+app.get('/tests/:id', async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    res.json(test);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST route for creating a new test
+app.post('/tests', async (req, res) => {
+  const { testName, imageUri, topics } = req.body;
+  
+  const newTest = new Test({
+    testName,
+    imageUri,
+    topics
+  });
+  
+  try {
+    const savedTest = await newTest.save();
+    res.status(201).json(savedTest);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
