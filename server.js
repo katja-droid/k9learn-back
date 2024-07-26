@@ -33,8 +33,6 @@ app.get('/courses', async (req, res) => {
     res.status(500).json({ message: 'Error fetching courses', error: error.message });
   }
 });
-// API Endpoints
-// Create a new user
 app.get('/courses/:courseName', async (req, res) => {
   try {
     // Extract the courseName from the request parameters
@@ -63,10 +61,8 @@ app.post('/users', async (req, res) => {
   }
 
   try {
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user
     const newUser = new User({
       nickname,
       email,
@@ -75,14 +71,13 @@ app.post('/users', async (req, res) => {
       progress: []
     });
 
-    await newUser.save(); // Save the user to the database
+    await newUser.save(); 
     res.status(201).send({ message: 'User created successfully', userId: newUser._id });
   } catch (error) {
     res.status(500).send({ message: 'Error creating user', error: error.message });
   }
 });
 
-// Update user information
 app.put('/users/:id', async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -92,7 +87,6 @@ app.put('/users/:id', async (req, res) => {
   }
 });
 
-// Delete a user
 app.delete('/users/:id', async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -106,11 +100,7 @@ app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
-// Add a course to a specific user
 
-  
-  // Add a friend to a user's friend list
-// Add a friend to a user's friend list
 app.post('/users/:userId/friends', async (req, res) => {
   const { userId } = req.params;
   const { friendId } = req.body; // ID of the friend to add
@@ -121,13 +111,10 @@ app.post('/users/:userId/friends', async (req, res) => {
       return res.status(404).send({ message: 'Friend not found' });
     }
     
-    // Add friend's ID to user's friend list
     user.friends.push(friendId);
     
-    // Add current user's ID to friend's friend list
     friend.friends.push(userId);
     
-    // Save changes to both user and friend
     await Promise.all([user.save(), friend.save()]);
     
     res.status(201).send({ user, friend });
@@ -136,37 +123,31 @@ app.post('/users/:userId/friends', async (req, res) => {
   }
 });
 
-  // Add a course to a specific user
 app.post('/users/:userId/courses', async (req, res) => {
   const { userId } = req.params;
   const { courseId } = req.body;
 
   try {
-    // Retrieve the user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
     }
 
-    // Retrieve the course
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).send({ message: 'Course not found' });
     }
 
-    // Check if the course is already added to prevent duplicates
     if (user.courses.includes(courseId)) {
       return res.status(400).send({ message: 'Course already added to this user' });
     }
 
-    // Add course to the user's list of courses
     user.courses.push(courseId);
 
-    // Add default progress for the newly added course
     const questionProgress = course.topics.flatMap(topic =>
       topic.questions.map(question => ({
         questionId: question._id,
-        triesLeft: question.type === 'true_false' ? 1 : 3, // Set triesLeft based on question type
+        triesLeft: question.type === 'true_false' ? 1 : 3, 
         answered: false,
         correct: false
       }))
@@ -174,14 +155,12 @@ app.post('/users/:userId/courses', async (req, res) => {
     user.progress.push({
       courseId: courseId,
       points: 0,
-      totalPoints: 100, // Set according to your app's logic
+      totalPoints: 100, 
       questionProgress
     });
 
-    // Save the user
     await user.save();
 
-    // Send response
     res.status(200).send({ message: 'Course added successfully', user });
   } catch (error) {
     console.error('Error adding course to user:', error);
@@ -189,7 +168,6 @@ app.post('/users/:userId/courses', async (req, res) => {
   }
 });
 
-  // Update progress for a user
   app.put('/users/:userId/progress/:courseId', async (req, res) => {
     try {
       const user = await User.findById(req.params.userId);
@@ -210,8 +188,6 @@ app.post('/users/:userId/courses', async (req, res) => {
     }
   });
   
-// Remove a course from a specific user
-// Remove a course from a specific user
 app.delete('/users/:userId/courses/:courseId', async (req, res) => {
   const { userId, courseId } = req.params;
   try {
@@ -220,15 +196,12 @@ app.delete('/users/:userId/courses/:courseId', async (req, res) => {
       return res.status(404).send({ message: 'User not found' });
     }
 
-    // Check if the course is in the user's list
     if (!user.courses.includes(courseId)) {
       return res.status(404).send({ message: 'Course not found in user\'s courses' });
     }
 
-    // Remove the course from the courses array
-    user.courses.pull(courseId); // Mongoose method to pull/remove item from array
+    user.courses.pull(courseId);
 
-    // Remove associated progress
     user.progress = user.progress.filter(p => p.courseId.toString() !== courseId); // Fix the filtering
 
     await user.save();
@@ -237,19 +210,16 @@ app.delete('/users/:userId/courses/:courseId', async (req, res) => {
     res.status(500).send({ message: 'Server error', error: error.toString() });
   }
 });
-// Add a route to handle adding courses
 app.post('/courses', async (req, res) => {
   const { courseName, imageUri, topics } = req.body;
 
   try {
-    // Create a new course
     const newCourse = new Course({
       courseName,
       imageUri,
       topics
     });
 
-    // Save the course to the database
     await newCourse.save();
 
     res.status(201).send({ message: 'Course created successfully', courseId: newCourse._id });
@@ -257,30 +227,22 @@ app.post('/courses', async (req, res) => {
     res.status(500).send({ message: 'Error creating course', error: error.message });
   }
 });
-// Login endpoint
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user by email
     const user = await User.findOne({ email });
 
-    // If user doesn't exist
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
     }
 
-    // Check if the provided password matches the hashed password in the database
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    // If passwords don't match
     if (!isPasswordValid) {
       return res.status(401).send({ message: 'Invalid password' });
     }
 
-    // If authentication is successful, you can generate a token here and send it to the client for future authenticated requests
-
-    // For now, just send a success response
     res.status(200).send({ message: 'Login successful', user });
   } catch (error) {
     res.status(500).send({ message: 'Error logging in', error: error.message });
@@ -290,23 +252,19 @@ app.post('/login', async (req, res) => {
 
 app.get('/users/search/:searchTerm', async (req, res) => {
   try {
-    // Extract the searchTerm from the request parameters
     const { searchTerm } = req.params;
 
-    // Search users based on the searchTerm
     const users = await User.find({
       $or: [
-        { nickname: { $regex: searchTerm, $options: 'i' } }, // Case-insensitive search for nickname
-        { email: { $regex: searchTerm, $options: 'i' } } // Case-insensitive search for email
+        { nickname: { $regex: searchTerm, $options: 'i' } }, 
+        { email: { $regex: searchTerm, $options: 'i' } } 
       ]
     });
 
-    // If no users match the search term, send an empty array
     if (users.length === 0) {
       return res.status(404).send({ message: 'No users found matching the search term' });
     }
 
-    // Send the search results
     res.status(200).json(users);
   } catch (error) {
     // If an error occurs, send a 500 response with the error message
@@ -315,49 +273,37 @@ app.get('/users/search/:searchTerm', async (req, res) => {
 });
 app.get('/current-user', async (req, res) => {
   try {
-    // Assuming you have some way to identify the current user, like a session or token
-    // For this example, let's say you have a user ID stored in the request object
-    const userId = req.userId; // Assuming userId is available in the request object
+    const userId = req.userId; 
 
-    // Find the current user by their ID
     const user = await User.findById(userId);
 
-    // If the user is not found, send a 404 response
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // If the user is found, send it in the response
     res.status(200).json(user);
   } catch (error) {
-    // If an error occurs, send a 500 response with the error message
     res.status(500).json({ message: 'Error fetching current user', error: error.message });
   }
 });
 
 app.get('/all-users', async (req, res) => {
   try {
-    // Retrieve all users from the database
     const allUsers = await User.find();
 
-    // If there are no users found, send a 404 response
     if (!allUsers || allUsers.length === 0) {
       return res.status(404).json({ message: 'No users found' });
     }
 
-    // If users are found, send them in the response
     res.status(200).json(allUsers);
   } catch (error) {
-    // If an error occurs, send a 500 response with the error message
     res.status(500).json({ message: 'Error fetching all users', error: error.message });
   }
 });
-// Add this endpoint to fetch courses by an array of IDs
 app.post('/courses/by-ids', async (req, res) => {
   const { courseIds } = req.body;
 
   try {
-    // Find all courses that match the provided IDs
     const courses = await Course.find({ _id: { $in: courseIds } });
 
     if (courses.length === 0) {
