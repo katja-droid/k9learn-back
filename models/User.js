@@ -25,7 +25,6 @@ const userSchema = new Schema({
   progress: [progressSchema]
 });
 
-// Middleware to add progress when a course is added
 userSchema.pre('save', async function(next) {
   if (this.isModified('courses')) {
     if (!this.progress) {
@@ -51,7 +50,6 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-// Helper method to check password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
